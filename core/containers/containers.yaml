@@ -1,10 +1,8 @@
-name: Applications.Core
+name: Radius.Compute
 types:
   containers:
-    # This will not be required in the future since it is the default.
-    capabilities: ["SupportsRecipes"]
     apiVersions:
-      # The only API version supported is 2023-10-01-preview. See https://github.com/radius-project/radius/issues/9357
+      # TODO: update the API version once the official build is ready. The only API version supported is 2023-10-01-preview. See https://github.com/radius-project/radius/issues/9357
       '2023-10-01-preview':
         schema: 
           type: object
@@ -30,7 +28,7 @@ types:
                 env:
                   type: object
                   description: "Optional: Environment variables injected into the application container; for example 'ENV_VAR': { value: 'myvalue' }"
-                  properties:
+                  additionalProperties:
                     value:
                       type: string
                 # Should be an array of strings but Radius does not suport arrays yet.
@@ -40,6 +38,15 @@ types:
                 #   type: array
                 #   items:
                 #     type: string
+                # extensions:
+                #   type: array
+                #   items:
+                #     type: object
+                #     properties: 
+                #       kind:
+                #         type: string
+                #       value:
+                #         type: string
                 command:
                   type: string
                   description: "Optional: Overrides the container image's ENTRYPOINT; for example ['/bin/sh']"
@@ -62,7 +69,7 @@ types:
                       description: "Optional: The protocol the container exposes; options are 'TCP' and 'UCP'; defaults to 'TCP'"
               required:
               - image
-            runtimes:
+            platformOptions:
               type: object
               properties:
                 kubernetes:
