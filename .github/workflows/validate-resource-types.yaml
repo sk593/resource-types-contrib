@@ -98,9 +98,8 @@ jobs:
         run: |
           # Define common configuration
           setup_config() {
-            resource_folders=("Compute" "Security")
+            resource_folders=("Security")
             declare -g -A folder_to_namespace=(
-              ["Compute"]="Radius.Compute"
               ["Security"]="Radius.Security"
             )
           }
@@ -148,9 +147,8 @@ jobs:
         run: |
           # Define common configuration
           setup_config() {
-            resource_folders=("Compute" "Security")
+            resource_folders=("Security")
             declare -g -A folder_to_namespace=(
-              ["Compute"]="Radius.Compute"
               ["Security"]="Radius.Security"
             )
           }
@@ -210,9 +208,8 @@ jobs:
         run: |
           # Define common configuration
           setup_config() {
-            resource_folders=("Compute" "Security")
+            resource_folders=("Security")
             declare -g -A folder_to_namespace=(
-              ["Compute"]="Radius.Compute"
               ["Security"]="Radius.Security"
             )
           }
@@ -290,9 +287,8 @@ jobs:
         run: |
           # Define common configuration
           setup_config() {
-            resource_folders=("Compute" "Security")
+            resource_folders=("Security")
             declare -g -A folder_to_namespace=(
-              ["Compute"]="Radius.Compute"
               ["Security"]="Radius.Security"
             )
           }
