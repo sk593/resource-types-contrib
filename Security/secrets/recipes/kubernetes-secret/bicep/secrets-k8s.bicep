@@ -5,11 +5,11 @@ extension kubernetes with {
 
 param context object
 
-var secretData = context.resource.properties.data
 // If secretKind is not set, set to 'generic'
 var secretKind = context.resource.properties.?kind ?? 'generic'
+var secretData = context.resource.properties.data
 
-// Validate required fields for different secret kinds
+// Validate required fields for secret kinds
 var missingFields = secretKind == 'certificate-pem' && (!contains(secretData, 'tls.crt') || !contains(secretData, 'tls.key')) 
   ? 'certificate-pem secrets must contain keys `tls.crt` and `tls.key`'
   : secretKind == 'basicAuthentication' && (!contains(secretData, 'username') || !contains(secretData, 'password'))
@@ -22,7 +22,6 @@ var missingFields = secretKind == 'certificate-pem' && (!contains(secretData, 't
 
 // Extract values from secretData formatted as {key: {value: "...", encoding: "..."}} 
 // to flat format {key: "..."} for Kubernetes
-// Separate base64 and string data for appropriate Kubernetes secret fields
 var base64Data = reduce(items(secretData), {}, (acc, item) => 
   (contains(item.value, 'encoding') && item.value.encoding == 'base64') ? union(acc, {'${item.key}': item.value.value}) : acc
 )
@@ -32,7 +31,7 @@ var stringData = reduce(items(secretData), {}, (acc, item) =>
 
 // Determine secret type based on kind
 var secretType = secretKind == 'certificate-pem' ? 'kubernetes.io/tls' : (secretKind == 'basicAuthentication' ? 'kubernetes.io/basic-auth' : 'Opaque')
-var secretName = length(missingFields) > 0 ? missingFields : 'secret-${uniqueString(context.resource.id)}'
+var secretName = length(missingFields) > 0 ? missingFields : context.resource.name
     
 resource secret 'core/Secret@v1' = {
   metadata: {
