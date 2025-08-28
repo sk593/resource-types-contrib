@@ -20,11 +20,11 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
-      - name: Setup Node
-        uses: actions/setup-node@v3
+        uses: actions/checkout@v5
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: 16
+          node-version: '18'
       - name: Download k3d
         run: wget -q -O - https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
       - name: Create k3d cluster
@@ -50,7 +50,6 @@ jobs:
           rad env create default
           rad env switch default
       - name: Verify manifests are registered
-        if: env.SKIP_BUILD != 'true'
         run: |
           rm -f registermanifest_logs.txt
           # Find the pod with container "ucp"
