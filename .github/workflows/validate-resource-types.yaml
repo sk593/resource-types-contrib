@@ -353,7 +353,7 @@ jobs:
           k8s_recipes=()
           while IFS= read -r -d '' f; do
             k8s_recipes+=("$f")
-          done < <(find . -path "*/recipes/kubernetes-*/*.bicep" -type f -print0)
+          done < <(find . -path "*/recipes/kubernetes/*.bicep" -type f -print0)
 
           if [[ ${#k8s_recipes[@]} -eq 0 ]]; then
             echo "No Kubernetes recipe files found"
