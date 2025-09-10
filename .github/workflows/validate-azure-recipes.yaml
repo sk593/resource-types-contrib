@@ -1,0 +1,102 @@
+name: Validate Azure Recipes
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '**/recipes/azure/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '**/recipes/azure/**'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Radius version number to use (e.g. 0.1.0, 0.1.0-rc1, edge). Defaults to edge.'
+        required: false
+        default: 'edge'
+        type: string
+
+jobs:
+  validate-azure-recipes:
+    runs-on: ubuntu-latest
+    name: Validate Azure Recipe Deployments
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          
+      - name: Download k3d
+        run: wget -q -O - https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+        
+      - name: Set up ORAS
+        uses: oras-project/setup-oras@v1
+        with:
+          version: '1.2.0'
+          
+      - name: Install Azure CLI
+        run: |
+          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+          az version
+          
+      - name: Install Radius
+        run: make install-radius VERSION="${{ inputs.version || 'edge' }}"
+        
+      - name: Verify manifests are registered
+        run: make verify-manifests
+        
+      - name: Create workspace and environment
+        run: make create-workspace
+        
+      - name: Configure Azure provider
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        run: make configure-azure-provider
+        
+      - name: Create resource types from resource folders
+        run: make create-resource-types
+
+      - name: Verify expected resource types are present
+        run: make verify-resource-types
+
+      - name: Publish Bicep extensions
+        run: make publish-bicep-extensions
+
+      - name: Update bicepconfig.json with published extensions
+        run: make update-bicepconfig
+
+      - name: Publish Azure Bicep recipes to registry
+        run: make publish-azure-bicep-recipes
+
+      - name: Register and test Azure Bicep recipes
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        run: make test-azure-bicep-recipes
+
+      - name: Register and test Azure Terraform recipes
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        run: make test-azure-terraform-recipes
+        
+      - name: Cleanup Azure resources
+        if: always()
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        run: make cleanup-azure-resources

@@ -4,9 +4,10 @@
 
 # Define common configuration
 setup_config() {
-  resource_folders=("Security")
+  resource_folders=("Security" "Compute")
   declare -g -A folder_to_namespace=(
     ["Security"]="Radius.Security"
+    ["Compute"]="Radius.Compute"
   )
 }
 
@@ -92,6 +93,63 @@ get_radius_namespace() {
   fi
   
   echo "$radius_namespace"
+}
+
+# Configure Azure provider in Radius environment
+configure_azure_provider() {
+  echo "Configuring Azure provider in Radius environment..."
+  
+  # Check required environment variables
+  if [[ -z "$AZURE_CLIENT_ID" || -z "$AZURE_CLIENT_SECRET" || -z "$AZURE_TENANT_ID" || -z "$AZURE_SUBSCRIPTION_ID" ]]; then
+    echo "❌ Missing required Azure environment variables:"
+    echo "   AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID"
+    exit 1
+  fi
+  
+  echo "Registering Azure provider with Radius..."
+  if rad env update default --azure-subscription-id "$AZURE_SUBSCRIPTION_ID" --azure-resource-group "radius-test-rg-$(date +%s)"; then
+    echo "✅ Azure provider configured successfully"
+  else
+    echo "❌ Failed to configure Azure provider"
+    exit 1
+  fi
+  
+  # Configure Azure credentials for deployment
+  echo "Setting up Azure authentication..."
+  if az login --service-principal -u "$AZURE_CLIENT_ID" -p "$AZURE_CLIENT_SECRET" --tenant "$AZURE_TENANT_ID"; then
+    echo "✅ Azure authentication successful"
+  else
+    echo "❌ Azure authentication failed"
+    exit 1
+  fi
+  
+  # Set default subscription
+  az account set --subscription "$AZURE_SUBSCRIPTION_ID"
+  echo "✅ Azure provider configuration completed"
+}
+
+# Cleanup Azure resources (basic resource group cleanup)
+cleanup_azure_resources() {
+  local resource_group_pattern="radius-test-rg-*"
+  
+  echo "Cleaning up Azure test resources..."
+  
+  # List and delete test resource groups
+  resource_groups=$(az group list --query "[?starts_with(name, 'radius-test-rg-')].name" -o tsv 2>/dev/null || echo "")
+  
+  if [[ -n "$resource_groups" ]]; then
+    echo "Found test resource groups to clean up:"
+    echo "$resource_groups"
+    
+    for rg in $resource_groups; do
+      echo "Deleting resource group: $rg"
+      az group delete --name "$rg" --yes --no-wait || echo "Failed to delete $rg"
+    done
+    
+    echo "✅ Azure cleanup initiated (running in background)"
+  else
+    echo "No Azure test resource groups found to clean up"
+  fi
 }
 
 # Deploy and cleanup test application
@@ -228,13 +286,14 @@ publish_bicep_extensions() {
   echo "✅ All Bicep extensions published successfully"
 }
 
-# Publish all Bicep recipes to registry
+# Publish Bicep recipes to registry (for specific platform)
 publish_bicep_recipes() {
-  echo "Finding and publishing all Bicep recipes..."
-  readarray -t bicep_recipes < <(find_recipe_files "*/recipes/*/*.bicep")
+  local platform_pattern="${1:-*/recipes/*/*.bicep}"  # Default to all platforms
+  echo "Finding and publishing Bicep recipes with pattern: $platform_pattern"
+  readarray -t bicep_recipes < <(find_recipe_files "$platform_pattern")
 
   if [[ ${#bicep_recipes[@]} -eq 0 ]]; then
-    echo "No Bicep recipe files found"
+    echo "No Bicep recipe files found for pattern: $platform_pattern"
     exit 0
   fi
 
@@ -262,7 +321,8 @@ publish_bicep_recipes() {
 # Register and test recipes (unified function for Bicep and Terraform)
 test_recipes() {
   local template_kind="$1"
-  shift
+  local platform_filter="$2"  # Optional platform filter (e.g., "kubernetes", "azure")
+  shift 2
   local recipes=("$@")
   
   if [[ ${#recipes[@]} -eq 0 ]]; then
@@ -271,12 +331,18 @@ test_recipes() {
   fi
   
   echo ""
-  echo "🔄 Testing $template_kind recipes..."
+  echo "🔄 Testing $template_kind recipes for platform: ${platform_filter:-all}..."
   
   # Group recipes by platform service
   declare -A platform_recipes
   for recipe_file in "${recipes[@]}"; do
     read -r root_folder resource_type platform_service file_name <<< "$(extract_recipe_info "$recipe_file")"
+    
+    # Skip if platform filter is specified and doesn't match
+    if [[ -n "$platform_filter" && "$platform_service" != "$platform_filter" ]]; then
+      echo "Skipping $platform_service recipe (filter: $platform_filter)"
+      continue
+    fi
     
     platform_key="$root_folder/$resource_type/$platform_service"
     if [[ "$template_kind" == "terraform" ]]; then
