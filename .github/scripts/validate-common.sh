@@ -99,10 +99,10 @@ get_radius_namespace() {
 configure_azure_provider() {
   echo "Configuring Azure provider in Radius environment..."
   
-  # Check required environment variables
-  if [[ -z "$AZURE_CLIENT_ID" || -z "$AZURE_CLIENT_SECRET" || -z "$AZURE_TENANT_ID" || -z "$AZURE_SUBSCRIPTION_ID" ]]; then
+  # Check required environment variables (no client secret needed for workload identity)
+  if [[ -z "$AZURE_CLIENT_ID" || -z "$AZURE_TENANT_ID" || -z "$AZURE_SUBSCRIPTION_ID" ]]; then
     echo "❌ Missing required Azure environment variables:"
-    echo "   AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID"
+    echo "   AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID"
     exit 1
   fi
   
@@ -114,17 +114,6 @@ configure_azure_provider() {
     exit 1
   fi
   
-  # Configure Azure credentials for deployment
-  echo "Setting up Azure authentication..."
-  if az login --service-principal -u "$AZURE_CLIENT_ID" -p "$AZURE_CLIENT_SECRET" --tenant "$AZURE_TENANT_ID"; then
-    echo "✅ Azure authentication successful"
-  else
-    echo "❌ Azure authentication failed"
-    exit 1
-  fi
-  
-  # Set default subscription
-  az account set --subscription "$AZURE_SUBSCRIPTION_ID"
   echo "✅ Azure provider configuration completed"
 }
 
@@ -186,6 +175,17 @@ deploy_and_cleanup_test_app() {
   fi
 }
 
+# Extract resource type names from YAML content
+extract_resource_type_names() {
+  local yaml_file="$1"
+  # Extract resource type names from the 'types:' section using yq or grep
+  if command -v yq >/dev/null 2>&1; then
+    yq eval '.types | keys | .[]' "$yaml_file" 2>/dev/null || echo ""
+  else
+    # Fallback to grep/awk if yq is not available
+    grep -A 100 "^types:" "$yaml_file" | grep -E "^  [a-zA-Z]" | awk '{print $1}' | sed 's/:$//' || echo ""
+  fi
+}
 
 # Create resource types from YAML files
 create_resource_types() {
@@ -196,16 +196,23 @@ create_resource_types() {
   for yaml_file in "${all_yaml_files[@]}"; do
     echo "Processing: $yaml_file"
 
-    # Extract resource type name from the file path
-    resource_name=$(basename "$yaml_file" .yaml)
-
-    echo "Creating resource type '$resource_name' from $yaml_file..."
-    if rad resource-type create "$resource_name" -f "$yaml_file"; then
-      echo "✅ Successfully created resource type: $resource_name"
-    else
-      echo "❌ Failed to create resource type: $resource_name"
-      exit 1
+    # Extract actual resource type names from YAML content
+    readarray -t resource_names < <(extract_resource_type_names "$yaml_file")
+    
+    if [[ ${#resource_names[@]} -eq 0 ]]; then
+      echo "⚠️ No resource types found in $yaml_file, skipping..."
+      continue
     fi
+    
+    for resource_name in "${resource_names[@]}"; do
+      echo "Creating resource type '$resource_name' from $yaml_file..."
+      if rad resource-type create "$resource_name" -f "$yaml_file"; then
+        echo "✅ Successfully created resource type: $resource_name"
+      else
+        echo "❌ Failed to create resource type: $resource_name"
+        exit 1
+      fi
+    done
   done
 
   echo "✅ All resource types created successfully"
@@ -226,8 +233,13 @@ verify_resource_types() {
     # Extract folder from path to get namespace
     folder=$(echo "$yaml_file" | cut -d'/' -f2)
     radius_namespace="${folder_to_namespace[$folder]}"
-    resource_name=$(basename "$yaml_file" .yaml)
-    expected_resource_types+=("$radius_namespace/$resource_name")
+    
+    # Extract actual resource type names from YAML content
+    readarray -t resource_names < <(extract_resource_type_names "$yaml_file")
+    
+    for resource_name in "${resource_names[@]}"; do
+      expected_resource_types+=("$radius_namespace/$resource_name")
+    done
   done
   
   if [[ ${#expected_resource_types[@]} -eq 0 ]]; then
