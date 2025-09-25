@@ -106,6 +106,14 @@ configure_azure_provider() {
     exit 1
   fi
   
+  echo "Registering Azure workload identity credentials with Radius..."
+  if rad credential register azure wi --client-id "$AZURE_CLIENT_ID" --tenant-id "$AZURE_TENANT_ID"; then
+    echo "✅ Azure workload identity credentials registered successfully"
+  else
+    echo "❌ Failed to register Azure workload identity credentials"
+    exit 1
+  fi
+  
   echo "Registering Azure provider with Radius..."
   if rad env update default --azure-subscription-id "$AZURE_SUBSCRIPTION_ID" --azure-resource-group "radius-test-rg-$(date +%s)"; then
     echo "✅ Azure provider configured successfully"
