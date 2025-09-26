@@ -1,21 +1,9 @@
 name: Validate Azure Recipes
 
 on:
-  push:
-    branches: [ main ]
-    paths:
-      - '**/recipes/azure/**'
   pull_request:
-    branches: [ main ]
-    paths:
-      - '**/recipes/azure/**'
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Radius version number to use (e.g. 0.1.0, 0.1.0-rc1, edge). Defaults to edge.'
-        required: false
-        default: 'edge'
-        type: string
+    branches:
+      - main
 
 jobs:
   validate-azure-recipes:

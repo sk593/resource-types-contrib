@@ -47,11 +47,11 @@ param httpRuleName string = 'httpRule'
 
 @description('Virtual Network address prefix')
 @maxLength(64)
-param vnetAddressPrefix string
+param vnetAddressPrefix string = '10.0.0.0/16'
 
 @description('Subnet address prefix')
 @maxLength(64)
-param subnetAddressPrefix string
+param subnetAddressPrefix string = '10.0.1.0/24'
 
 @description('Desired container count')
 param desiredCount int = 3

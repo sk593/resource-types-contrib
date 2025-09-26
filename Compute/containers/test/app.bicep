@@ -17,6 +17,7 @@ resource app 'Applications.Core/applications@2023-10-01-preview' = {
   }
 }
 
+// test container
 resource myContainer 'Radius.Compute/containers@2025-08-01-preview' = {
   name: 'myContainer'
   properties: {
