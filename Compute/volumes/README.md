@@ -12,7 +12,6 @@ A list of available Recipes for this Resource Type, including links to the Bicep
 | Kubernetes | Bicep | recipes/kubernetes/bicep/kubernetes-volumes.bicep | Alpha |
 | Kubernetes | Terraform | recipes/kubernetes/terraform/main.tf | Alpha |
 
-
 ## Recipe Input Properties
 
 Properties for PersistentVolumes are provided to the Recipe via the [Recipe Context](https://docs.radapp.io/reference/context-schema/) object. These properties include:

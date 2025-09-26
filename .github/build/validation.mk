@@ -101,7 +101,7 @@ test-bicep-recipes: ## Register and test Bicep recipes
 	@echo -e "$(ARROW) Testing Bicep recipes..."
 	@source .github/scripts/validate-common.sh && setup_config && \
 	readarray -t bicep_recipes < <(find_and_validate_recipes "*/recipes/kubernetes/bicep/*.bicep" "Kubernetes Bicep") && \
-	test_recipes "bicep" "$${bicep_recipes[@]}" && \
+	test_recipes "bicep" "kubernetes" "$${bicep_recipes[@]}" && \
 	echo "✅ All Kubernetes Bicep recipes tested successfully" && \
 	rad recipe list --environment default
 
@@ -111,6 +111,41 @@ test-terraform-recipes: ## Register and test Terraform recipes
 	@echo -e "$(ARROW) Testing Terraform recipes..."
 	@source .github/scripts/validate-common.sh && setup_config && \
 	readarray -t terraform_recipes < <(find_and_validate_recipes "*/recipes/kubernetes/terraform/main.tf" "Terraform") && \
-	test_recipes "terraform" "$${terraform_recipes[@]}" && \
+	test_recipes "terraform" "kubernetes" "$${terraform_recipes[@]}" && \
 	echo "✅ All Terraform recipes tested successfully" && \
 	rad recipe list --environment default
+
+##@ Azure Recipes
+
+.PHONY: configure-azure-provider
+configure-azure-provider: ## Configure Azure provider in Radius environment
+	@echo -e "$(ARROW) Configuring Azure provider..."
+	@source .github/scripts/validate-common.sh && configure_azure_provider
+
+.PHONY: publish-azure-bicep-recipes
+publish-azure-bicep-recipes: ## Publish Azure Bicep recipes to registry
+	@echo -e "$(ARROW) Publishing Azure Bicep recipes..."
+	@source .github/scripts/validate-common.sh && setup_config && publish_bicep_recipes "*/recipes/azure/bicep/*.bicep"
+
+.PHONY: test-azure-bicep-recipes
+test-azure-bicep-recipes: ## Register and test Azure Bicep recipes
+	@echo -e "$(ARROW) Testing Azure Bicep recipes..."
+	@source .github/scripts/validate-common.sh && setup_config && \
+	readarray -t bicep_recipes < <(find_and_validate_recipes "*/recipes/azure/bicep/*.bicep" "Azure Bicep") && \
+	test_recipes "bicep" "azure" "$${bicep_recipes[@]}" && \
+	echo "✅ All Azure Bicep recipes tested successfully" && \
+	rad recipe list --environment default
+
+.PHONY: test-azure-terraform-recipes
+test-azure-terraform-recipes: ## Register and test Azure Terraform recipes
+	@echo -e "$(ARROW) Testing Azure Terraform recipes..."
+	@source .github/scripts/validate-common.sh && setup_config && \
+	readarray -t terraform_recipes < <(find_and_validate_recipes "*/recipes/azure/terraform/main.tf" "Azure Terraform") && \
+	test_recipes "terraform" "azure" "$${terraform_recipes[@]}" && \
+	echo "✅ All Azure Terraform recipes tested successfully" && \
+	rad recipe list --environment default
+
+.PHONY: cleanup-azure-resources
+cleanup-azure-resources: ## Cleanup Azure test resources
+	@echo -e "$(ARROW) Cleaning up Azure resources..."
+	@source .github/scripts/validate-common.sh && cleanup_azure_resources
