@@ -87,8 +87,8 @@ resource tcpRoute 'gateway.networking.k8s.io/TCPRoute@v1alpha2' = if (routeKind 
       for rule in rules: {
         backendRefs: [
           {
-            name: '${toLower(last(split(rule.destinationContainer.resourceId, '/')))}-${rule.destinationContainer.containerName}'
-            port: 80
+            name: toLower(last(split(rule.destinationContainer.resourceId, '/')))
+            port: rule.destinationContainer.?containerPort ?? 80
           }
         ]
       }
@@ -118,8 +118,8 @@ resource udpRoute 'gateway.networking.k8s.io/UDPRoute@v1alpha2' = if (routeKind 
       for rule in rules: {
         backendRefs: [
           {
-            name: '${toLower(last(split(rule.destinationContainer.resourceId, '/')))}-${rule.destinationContainer.containerName}'
-            port: 80
+            name: toLower(last(split(rule.destinationContainer.resourceId, '/')))
+            port: rule.destinationContainer.?containerPort ?? 80
           }
         ]
       }
@@ -140,8 +140,8 @@ var httpRules = [
     ]
     backendRefs: [
       {
-        name: '${toLower(last(split(rule.destinationContainer.resourceId, '/')))}-${rule.destinationContainer.containerName}'
-        port: 80
+        name: toLower(last(split(rule.destinationContainer.resourceId, '/')))
+        port: rule.destinationContainer.?containerPort ?? 80
       }
     ]
   }
@@ -152,8 +152,8 @@ var tlsRules = [
   for rule in rules: {
     backendRefs: [
       {
-        name: '${toLower(last(split(rule.destinationContainer.resourceId, '/')))}-${rule.destinationContainer.containerName}'
-        port: 443
+        name: toLower(last(split(rule.destinationContainer.resourceId, '/')))
+        port: rule.destinationContainer.?containerPort ?? 443
       }
     ]
   }

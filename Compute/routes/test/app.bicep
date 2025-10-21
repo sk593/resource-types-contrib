@@ -25,18 +25,18 @@ resource myContainer 'Radius.Compute/containers@2025-08-01-preview' = {
     application: app.id
     containers: {
       frontend: {
-        image: 'nginx:latest'
+        image: 'nginx:alpine'
         ports: {
-          web: {
+          frontend: {
             containerPort: 80
           }
         }
       }
       accounts: {
-        image: 'nginx:latest'
+        image: 'nginxdemos/nginx-hello:latest'
         ports: {
-          web: {
-            containerPort: 80
+          accounts: {
+            containerPort: 8080
           }
         }
       }
@@ -61,7 +61,7 @@ resource gatewayRule 'Radius.Compute/routes@2025-08-01-preview' = {
         destinationContainer: {
           resourceId: myContainer.id
           containerName: 'frontend'
-          containerPortName: 'web'
+          containerPort: myContainer.properties.containers.frontend.ports.frontend.containerPort
         }
       }
       {
@@ -73,7 +73,7 @@ resource gatewayRule 'Radius.Compute/routes@2025-08-01-preview' = {
         destinationContainer: {
           resourceId: myContainer.id
           containerName: 'accounts'
-          containerPortName: 'web'
+          containerPort: myContainer.properties.containers.accounts.ports.accounts.containerPort
         }
       }
     ]
