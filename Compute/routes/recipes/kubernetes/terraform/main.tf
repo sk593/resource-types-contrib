@@ -59,8 +59,8 @@ resource "kubernetes_manifest" "http_route" {
           ]
           backendRefs = [
             {
-              name = "${lower(split("/", rule.destinationContainer.resourceId)[length(split("/", rule.destinationContainer.resourceId)) - 1])}-${rule.destinationContainer.containerName}"
-              port = 80
+              name = lower(split("/", rule.destinationContainer.resourceId)[length(split("/", rule.destinationContainer.resourceId)) - 1])
+              port = try(rule.destinationContainer.containerPort, 80)
             }
           ]
         }
@@ -97,8 +97,8 @@ resource "kubernetes_manifest" "tls_route" {
         for rule in local.rules : {
           backendRefs = [
             {
-              name = "${lower(split("/", rule.destinationContainer.resourceId)[length(split("/", rule.destinationContainer.resourceId)) - 1])}-${rule.destinationContainer.containerName}"
-              port = 443
+              name = lower(split("/", rule.destinationContainer.resourceId)[length(split("/", rule.destinationContainer.resourceId)) - 1])
+              port = try(rule.destinationContainer.containerPort, 443)
             }
           ]
         }
@@ -134,8 +134,8 @@ resource "kubernetes_manifest" "tcp_route" {
         for rule in local.rules : {
           backendRefs = [
             {
-              name = "${lower(split("/", rule.destinationContainer.resourceId)[length(split("/", rule.destinationContainer.resourceId)) - 1])}-${rule.destinationContainer.containerName}"
-              port = 80
+              name = lower(split("/", rule.destinationContainer.resourceId)[length(split("/", rule.destinationContainer.resourceId)) - 1])
+              port = try(rule.destinationContainer.containerPort, 80)
             }
           ]
         }
@@ -171,8 +171,8 @@ resource "kubernetes_manifest" "udp_route" {
         for rule in local.rules : {
           backendRefs = [
             {
-              name = "${lower(split("/", rule.destinationContainer.resourceId)[length(split("/", rule.destinationContainer.resourceId)) - 1])}-${rule.destinationContainer.containerName}"
-              port = 80
+              name = lower(split("/", rule.destinationContainer.resourceId)[length(split("/", rule.destinationContainer.resourceId)) - 1])
+              port = try(rule.destinationContainer.containerPort, 80)
             }
           ]
         }
