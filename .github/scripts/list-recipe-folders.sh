@@ -31,6 +31,7 @@
 set -euo pipefail
 
 ROOT_DIR="${1:-$(pwd)}"
+PLATFORM_FILTER_RAW="${RECIPE_PLATFORM_FILTER:-}"
 
 if [[ ! -d "$ROOT_DIR" ]]; then
     echo "Error: Root directory '$ROOT_DIR' does not exist" >&2
@@ -39,6 +40,18 @@ fi
 
 # Convert ROOT_DIR to an absolute path
 ROOT_DIR="$(cd "$ROOT_DIR" && pwd)"
+
+# Parse optional platform filter (comma or space separated values)
+declare -a PLATFORM_FILTERS=()
+if [[ -n "$PLATFORM_FILTER_RAW" ]]; then
+    IFS=',' read -ra _raw_filters <<< "$PLATFORM_FILTER_RAW"
+    for _entry in "${_raw_filters[@]}"; do
+        _trimmed="$(printf '%s' "$_entry" | xargs)"
+        if [[ -n "$_trimmed" ]]; then
+            PLATFORM_FILTERS+=("$_trimmed")
+        fi
+    done
+fi
 
 declare -A RECIPE_DIRS=()
 
@@ -53,10 +66,22 @@ find_recipe_dirs() {
 }
 
 # Collect Bicep recipe directories (directories containing .bicep files under recipes/)
-find_recipe_dirs -type f -path "*/recipes/*/*.bicep"
+if [[ ${#PLATFORM_FILTERS[@]} -gt 0 ]]; then
+    for _platform in "${PLATFORM_FILTERS[@]}"; do
+        find_recipe_dirs -type f -path "*/recipes/${_platform}/*/*.bicep"
+    done
+else
+    find_recipe_dirs -type f -path "*/recipes/*/*.bicep"
+fi
 
 # Collect Terraform recipe directories (directories containing main.tf under recipes/terraform)
-find_recipe_dirs -type f -path "*/recipes/*/terraform/main.tf"
+if [[ ${#PLATFORM_FILTERS[@]} -gt 0 ]]; then
+    for _platform in "${PLATFORM_FILTERS[@]}"; do
+        find_recipe_dirs -type f -path "*/recipes/${_platform}/terraform/main.tf"
+    done
+else
+    find_recipe_dirs -type f -path "*/recipes/*/terraform/main.tf"
+fi
 
 if [[ ${#RECIPE_DIRS[@]} -eq 0 ]]; then
     exit 0

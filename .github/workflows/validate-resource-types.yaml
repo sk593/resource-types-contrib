@@ -1,4 +1,4 @@
-name: Validate Resource Types
+name: Validate Locally Hosted Recipes
 
 on:
   push:
@@ -36,6 +36,6 @@ jobs:
       - name: Create Radius Cluster
         run: make create-radius-cluster
       - name: Build
-        run: make build
+        run: make build-kubernetes-recipes
       - name: Test
-        run: make test
+        run: make test-kubernetes-recipes
