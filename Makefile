@@ -25,8 +25,8 @@
 #
 # Environment Setup:
 #   make install-radius		     # Install Radius CLI
-#   make create-cluster		     # Create a local k3d Kubernetes cluster for testing
-#   make delete-cluster		     # Delete the local k3d Kubernetes cluster
+#   make create-cluster		     # Create a local kind Kubernetes cluster for testing
+#   make delete-cluster		     # Delete the local kind Kubernetes cluster
 #
 # Developement and testing:
 #   make lint					# Lint all resource types and recipes

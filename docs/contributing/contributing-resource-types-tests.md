@@ -37,7 +37,7 @@ Repository Root
 
 ```bash
 make install-radius-cli          # Install Radius CLI
-make create-radius-cluster       # Create k3d cluster with Radius
+make create-radius-cluster       # Create kind cluster with Radius
 make delete-radius-cluster       # Delete test cluster
 ```
 
