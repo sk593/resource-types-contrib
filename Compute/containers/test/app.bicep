@@ -20,6 +20,7 @@ resource myContainer 'Radius.Compute/containers@2025-08-01-preview' = {
     connections: {
       data: {
         source: myPersistentVolume.id
+        disableDefaultEnvVars: false
       }
     }
     containers: {
