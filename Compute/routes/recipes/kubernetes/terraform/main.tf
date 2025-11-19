@@ -39,33 +39,37 @@ resource "kubernetes_manifest" "http_route" {
         "app.kubernetes.io/part-of"   = "radius"
       }
     }
-    spec = {
-      parentRefs = [
-        {
-          name      = local.gateway_name
-          namespace = var.context.runtime.kubernetes.namespace
-        }
-      ]
-      hostnames = length(local.hostnames) > 0 ? local.hostnames : ["localhost"]
-      rules = [
-        for rule in local.rules : {
-          matches = [
-            {
-              path = {
-                type  = "PathPrefix"
-                value = try(rule.matches[0].httpPath, "/")
+    spec = merge(
+      {
+        parentRefs = [
+          {
+            name      = local.gateway_name
+            namespace = var.context.runtime.kubernetes.namespace
+          }
+        ]
+      },
+      length(local.hostnames) > 0 ? { hostnames = local.hostnames } : {},
+      {
+        rules = [
+          for rule in local.rules : {
+            matches = [
+              {
+                path = {
+                  type  = "PathPrefix"
+                  value = try(rule.matches[0].httpPath, "/")
+                }
               }
-            }
-          ]
-          backendRefs = [
-            {
-              name = lower(split("/", rule.destinationContainer.resourceId)[length(split("/", rule.destinationContainer.resourceId)) - 1])
-              port = try(rule.destinationContainer.containerPort, 80)
-            }
-          ]
-        }
-      ]
-    }
+            ]
+            backendRefs = [
+              {
+                name = lower(split("/", rule.destinationContainer.resourceId)[length(split("/", rule.destinationContainer.resourceId)) - 1])
+                port = try(rule.destinationContainer.containerPort, 80)
+              }
+            ]
+          }
+        ]
+      }
+    )
   }
 }
 
@@ -85,25 +89,29 @@ resource "kubernetes_manifest" "tls_route" {
         "app.kubernetes.io/part-of"   = "radius"
       }
     }
-    spec = {
-      parentRefs = [
-        {
-          name      = local.gateway_name
-          namespace = var.context.runtime.kubernetes.namespace
-        }
-      ]
-      hostnames = length(local.hostnames) > 0 ? local.hostnames : ["localhost"]
-      rules = [
-        for rule in local.rules : {
-          backendRefs = [
-            {
-              name = lower(split("/", rule.destinationContainer.resourceId)[length(split("/", rule.destinationContainer.resourceId)) - 1])
-              port = try(rule.destinationContainer.containerPort, 443)
-            }
-          ]
-        }
-      ]
-    }
+    spec = merge(
+      {
+        parentRefs = [
+          {
+            name      = local.gateway_name
+            namespace = var.context.runtime.kubernetes.namespace
+          }
+        ]
+      },
+      length(local.hostnames) > 0 ? { hostnames = local.hostnames } : {},
+      {
+        rules = [
+          for rule in local.rules : {
+            backendRefs = [
+              {
+                name = lower(split("/", rule.destinationContainer.resourceId)[length(split("/", rule.destinationContainer.resourceId)) - 1])
+                port = try(rule.destinationContainer.containerPort, 443)
+              }
+            ]
+          }
+        ]
+      }
+    )
   }
 }
 

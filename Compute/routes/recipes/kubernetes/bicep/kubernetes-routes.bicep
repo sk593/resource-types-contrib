@@ -1,6 +1,12 @@
 @description('Radius-provided deployment context.')
 param context object
 
+@description('Name of the Gateway resource to attach routes to. Can be configured per environment or recipe.')
+param gatewayName string = 'default-gateway'
+
+@description('Namespace where the Gateway resource is located. Defaults to the same namespace as the route.')
+param gatewayNamespace string = context.runtime.kubernetes.namespace
+
 extension kubernetes with {
   namespace: context.runtime.kubernetes.namespace
   kubeConfig: ''
@@ -10,10 +16,6 @@ extension kubernetes with {
 var rules = context.resource.properties.rules
 var hostnames = context.resource.properties.?hostnames ?? []
 var routeKind = context.resource.properties.?kind ?? 'HTTP'
-
-// Assume Gateway already exists - use a default gateway name
-// Platform engineers should configure this via recipe parameters or environment
-var gatewayName = 'default-gateway'
 
 // Create HTTPRoute for HTTP routing using Gateway API
 resource httpRoute 'gateway.networking.k8s.io/HTTPRoute@v1' = if (routeKind == 'HTTP') {
@@ -31,7 +33,7 @@ resource httpRoute 'gateway.networking.k8s.io/HTTPRoute@v1' = if (routeKind == '
       parentRefs: [
         {
           name: gatewayName
-          namespace: context.runtime.kubernetes.namespace
+          namespace: gatewayNamespace
         }
       ]
       rules: httpRules
@@ -56,7 +58,7 @@ resource tlsRoute 'gateway.networking.k8s.io/TLSRoute@v1alpha2' = if (routeKind 
       parentRefs: [
         {
           name: gatewayName
-          namespace: context.runtime.kubernetes.namespace
+          namespace: gatewayNamespace
         }
       ]
       rules: tlsRules
@@ -80,7 +82,7 @@ resource tcpRoute 'gateway.networking.k8s.io/TCPRoute@v1alpha2' = if (routeKind 
     parentRefs: [
       {
         name: gatewayName
-        namespace: context.runtime.kubernetes.namespace
+        namespace: gatewayNamespace
       }
     ]
     rules: [
@@ -111,7 +113,7 @@ resource udpRoute 'gateway.networking.k8s.io/UDPRoute@v1alpha2' = if (routeKind 
     parentRefs: [
       {
         name: gatewayName
-        namespace: context.runtime.kubernetes.namespace
+        namespace: gatewayNamespace
       }
     ]
     rules: [
