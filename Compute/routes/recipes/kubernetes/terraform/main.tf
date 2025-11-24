@@ -14,6 +14,15 @@ locals {
   hostnames    = try(var.context.resource.properties.hostnames, [])
   route_kind   = try(var.context.resource.properties.kind, "HTTP")
   resource_id  = var.context.resource.id
+  resource_name = var.context.resource.name
+  environment_value = try(tostring(var.context.resource.properties.environment), "")
+  environment_segments = local.environment_value != "" ? split("/", local.environment_value) : []
+  environment_label = length(local.environment_segments) > 0 ? local.environment_segments[length(local.environment_segments) - 1] : ""
+  route_base_labels = {
+    "radapp.io/resource"    = local.resource_name
+    "radapp.io/environment" = local.environment_label
+    "radapp.io/application" = var.context.application == null ? "" : var.context.application.name
+  }
 
   # Generate unique suffix for resource naming
   resource_id_hash = substr(sha256(local.resource_id), 0, 10)
@@ -33,11 +42,7 @@ resource "kubernetes_manifest" "http_route" {
     metadata = {
       name      = "routes-${local.resource_id_hash}"
       namespace = var.context.runtime.kubernetes.namespace
-      labels = {
-        "app.kubernetes.io/name"      = "radius-routes"
-        "app.kubernetes.io/component" = "httproute"
-        "app.kubernetes.io/part-of"   = "radius"
-      }
+      labels = local.route_base_labels
     }
     spec = merge(
       {
@@ -62,7 +67,11 @@ resource "kubernetes_manifest" "http_route" {
             ]
             backendRefs = [
               {
-                name = lower(split("/", rule.destinationContainer.resourceId)[length(split("/", rule.destinationContainer.resourceId)) - 1])
+                name = lower(
+                  try(rule.destinationContainer.containerName, "") != ""
+                  ? "${split("/", rule.destinationContainer.resourceId)[length(split("/", rule.destinationContainer.resourceId)) - 1]}-${rule.destinationContainer.containerName}"
+                  : split("/", rule.destinationContainer.resourceId)[length(split("/", rule.destinationContainer.resourceId)) - 1]
+                )
                 port = try(rule.destinationContainer.containerPort, 80)
               }
             ]
@@ -83,11 +92,7 @@ resource "kubernetes_manifest" "tls_route" {
     metadata = {
       name      = "routes-${local.resource_id_hash}"
       namespace = var.context.runtime.kubernetes.namespace
-      labels = {
-        "app.kubernetes.io/name"      = "radius-routes"
-        "app.kubernetes.io/component" = "tlsroute"
-        "app.kubernetes.io/part-of"   = "radius"
-      }
+      labels = local.route_base_labels
     }
     spec = merge(
       {
@@ -104,7 +109,11 @@ resource "kubernetes_manifest" "tls_route" {
           for rule in local.rules : {
             backendRefs = [
               {
-                name = lower(split("/", rule.destinationContainer.resourceId)[length(split("/", rule.destinationContainer.resourceId)) - 1])
+                name = lower(
+                  try(rule.destinationContainer.containerName, "") != ""
+                  ? "${split("/", rule.destinationContainer.resourceId)[length(split("/", rule.destinationContainer.resourceId)) - 1]}-${rule.destinationContainer.containerName}"
+                  : split("/", rule.destinationContainer.resourceId)[length(split("/", rule.destinationContainer.resourceId)) - 1]
+                )
                 port = try(rule.destinationContainer.containerPort, 443)
               }
             ]
@@ -125,11 +134,7 @@ resource "kubernetes_manifest" "tcp_route" {
     metadata = {
       name      = "routes-${local.resource_id_hash}"
       namespace = var.context.runtime.kubernetes.namespace
-      labels = {
-        "app.kubernetes.io/name"      = "radius-routes"
-        "app.kubernetes.io/component" = "tcproute"
-        "app.kubernetes.io/part-of"   = "radius"
-      }
+      labels = local.route_base_labels
     }
     spec = {
       parentRefs = [
@@ -142,7 +147,11 @@ resource "kubernetes_manifest" "tcp_route" {
         for rule in local.rules : {
           backendRefs = [
             {
-              name = lower(split("/", rule.destinationContainer.resourceId)[length(split("/", rule.destinationContainer.resourceId)) - 1])
+              name = lower(
+                try(rule.destinationContainer.containerName, "") != ""
+                ? "${split("/", rule.destinationContainer.resourceId)[length(split("/", rule.destinationContainer.resourceId)) - 1]}-${rule.destinationContainer.containerName}"
+                : split("/", rule.destinationContainer.resourceId)[length(split("/", rule.destinationContainer.resourceId)) - 1]
+              )
               port = try(rule.destinationContainer.containerPort, 80)
             }
           ]
@@ -162,11 +171,7 @@ resource "kubernetes_manifest" "udp_route" {
     metadata = {
       name      = "routes-${local.resource_id_hash}"
       namespace = var.context.runtime.kubernetes.namespace
-      labels = {
-        "app.kubernetes.io/name"      = "radius-routes"
-        "app.kubernetes.io/component" = "udproute"
-        "app.kubernetes.io/part-of"   = "radius"
-      }
+      labels = local.route_base_labels
     }
     spec = {
       parentRefs = [
@@ -179,7 +184,11 @@ resource "kubernetes_manifest" "udp_route" {
         for rule in local.rules : {
           backendRefs = [
             {
-              name = lower(split("/", rule.destinationContainer.resourceId)[length(split("/", rule.destinationContainer.resourceId)) - 1])
+              name = lower(
+                try(rule.destinationContainer.containerName, "") != ""
+                ? "${split("/", rule.destinationContainer.resourceId)[length(split("/", rule.destinationContainer.resourceId)) - 1]}-${rule.destinationContainer.containerName}"
+                : split("/", rule.destinationContainer.resourceId)[length(split("/", rule.destinationContainer.resourceId)) - 1]
+              )
               port = try(rule.destinationContainer.containerPort, 80)
             }
           ]

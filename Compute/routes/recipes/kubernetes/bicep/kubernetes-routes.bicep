@@ -13,20 +13,27 @@ extension kubernetes with {
 } as kubernetes
 
 // Extract route information from context
+var resourceName = context.resource.name
 var rules = context.resource.properties.rules
 var hostnames = context.resource.properties.?hostnames ?? []
 var routeKind = context.resource.properties.?kind ?? 'HTTP'
+var environmentSegments = context.resource.properties.environment != null ? split(string(context.resource.properties.environment), '/') : []
+var environmentLabel = length(environmentSegments) > 0 ? last(environmentSegments) : ''
+
+// Labels
+var labels = {
+  'radapp.io/resource': resourceName
+  'radapp.io/environment': environmentLabel
+  'radapp.io/application': context.application == null ? '' : context.application.name
+}
+
 
 // Create HTTPRoute for HTTP routing using Gateway API
 resource httpRoute 'gateway.networking.k8s.io/HTTPRoute@v1' = if (routeKind == 'HTTP') {
   metadata: {
     name: 'routes-${uniqueString(context.resource.id)}'
     namespace: context.runtime.kubernetes.namespace
-    labels: {
-      'app.kubernetes.io/name': 'radius-routes'
-      'app.kubernetes.io/component': 'httproute'
-      'app.kubernetes.io/part-of': 'radius'
-    }
+    labels: labels
   }
   spec: union(
     {
@@ -47,11 +54,7 @@ resource tlsRoute 'gateway.networking.k8s.io/TLSRoute@v1alpha2' = if (routeKind 
   metadata: {
     name: 'routes-${uniqueString(context.resource.id)}'
     namespace: context.runtime.kubernetes.namespace
-    labels: {
-      'app.kubernetes.io/name': 'radius-routes'
-      'app.kubernetes.io/component': 'tlsroute'
-      'app.kubernetes.io/part-of': 'radius'
-    }
+    labels: labels
   }
   spec: union(
     {
@@ -72,11 +75,7 @@ resource tcpRoute 'gateway.networking.k8s.io/TCPRoute@v1alpha2' = if (routeKind 
   metadata: {
     name: 'routes-${uniqueString(context.resource.id)}'
     namespace: context.runtime.kubernetes.namespace
-    labels: {
-      'app.kubernetes.io/name': 'radius-routes'
-      'app.kubernetes.io/component': 'tcproute'
-      'app.kubernetes.io/part-of': 'radius'
-    }
+    labels: labels
   }
   spec: {
     parentRefs: [
@@ -89,7 +88,11 @@ resource tcpRoute 'gateway.networking.k8s.io/TCPRoute@v1alpha2' = if (routeKind 
       for rule in rules: {
         backendRefs: [
           {
-            name: toLower(last(split(rule.destinationContainer.resourceId, '/')))
+            name: toLower(
+              (rule.destinationContainer.?containerName ?? '') != ''
+                ? '${last(split(rule.destinationContainer.resourceId, '/'))}-${rule.destinationContainer.containerName}'
+                : last(split(rule.destinationContainer.resourceId, '/'))
+            )
             port: rule.destinationContainer.?containerPort ?? 80
           }
         ]
@@ -103,11 +106,7 @@ resource udpRoute 'gateway.networking.k8s.io/UDPRoute@v1alpha2' = if (routeKind 
   metadata: {
     name: 'routes-${uniqueString(context.resource.id)}'
     namespace: context.runtime.kubernetes.namespace
-    labels: {
-      'app.kubernetes.io/name': 'radius-routes'
-      'app.kubernetes.io/component': 'udproute'
-      'app.kubernetes.io/part-of': 'radius'
-    }
+    labels: labels
   }
   spec: {
     parentRefs: [
@@ -120,7 +119,11 @@ resource udpRoute 'gateway.networking.k8s.io/UDPRoute@v1alpha2' = if (routeKind 
       for rule in rules: {
         backendRefs: [
           {
-            name: toLower(last(split(rule.destinationContainer.resourceId, '/')))
+            name: toLower(
+              (rule.destinationContainer.?containerName ?? '') != ''
+                ? '${last(split(rule.destinationContainer.resourceId, '/'))}-${rule.destinationContainer.containerName}'
+                : last(split(rule.destinationContainer.resourceId, '/'))
+            )
             port: rule.destinationContainer.?containerPort ?? 80
           }
         ]
@@ -142,7 +145,11 @@ var httpRules = [
     ]
     backendRefs: [
       {
-        name: toLower(last(split(rule.destinationContainer.resourceId, '/')))
+        name: toLower(
+          (rule.destinationContainer.?containerName ?? '') != ''
+            ? '${last(split(rule.destinationContainer.resourceId, '/'))}-${rule.destinationContainer.containerName}'
+            : last(split(rule.destinationContainer.resourceId, '/'))
+        )
         port: rule.destinationContainer.?containerPort ?? 80
       }
     ]
@@ -154,7 +161,11 @@ var tlsRules = [
   for rule in rules: {
     backendRefs: [
       {
-        name: toLower(last(split(rule.destinationContainer.resourceId, '/')))
+        name: toLower(
+          (rule.destinationContainer.?containerName ?? '') != ''
+            ? '${last(split(rule.destinationContainer.resourceId, '/'))}-${rule.destinationContainer.containerName}'
+            : last(split(rule.destinationContainer.resourceId, '/'))
+        )
         port: rule.destinationContainer.?containerPort ?? 443
       }
     ]
