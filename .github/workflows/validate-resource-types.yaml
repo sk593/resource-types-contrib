@@ -1,49 +1,65 @@
+# yaml-language-server: $schema=https://www.schemastore.org/github-workflow.json
+---
 name: Validate Resource Types
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
     inputs:
       version:
-        description: 'Radius version number to use (e.g. 0.51.0, 0.51.0-rc1, edge).'
+        description: "Radius version number to use (e.g. 0.51.0, 0.51.0-rc1, edge)."
         required: false
-        default: 'edge'
+        default: edge
         type: string
+
+permissions: {}
 
 jobs:
   validate-resource-types:
-    runs-on: ubuntu-latest
     name: Validate Resource Types and Recipes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
     strategy:
       fail-fast: false
       matrix:
         recipe: [bicep, terraform]
+    permissions:
+      contents: read
     env:
       RAD_ENVIRONMENT_NAME: default
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
+
       - name: Setup Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
         with:
           node-version: 16
+
       - name: Set up k3d
         run: wget -q -O - https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+
       - name: Set up ORAS
-        uses: oras-project/setup-oras@v1
+        uses: oras-project/setup-oras@22ce207df3b08e061f537244349aac6ae1d214f6 # v1.2.4
         with:
-          version: '1.2.0'
+          version: "1.2.0"
+
       - name: Install Radius CLI
         run: make install-radius-cli RAD_VERSION="${{ inputs.version || 'edge' }}"
+
       - name: Create Radius Cluster
         run: make create-radius-cluster
+
       - name: Build
         run: make build
+
       - name: Register ${{ matrix.recipe }} recipes
-        run: make register ENVIRONMENT=$RAD_ENVIRONMENT_NAME RECIPE_TYPE=${{ matrix.recipe }}
+        run: make register ENVIRONMENT="${RAD_ENVIRONMENT_NAME}" RECIPE_TYPE=${{ matrix.recipe }}
+
       - name: Test ${{ matrix.recipe }} recipes
-        run: make test ENVIRONMENT=$RAD_ENVIRONMENT_NAME RECIPE_TYPE=${{ matrix.recipe }}
+        run: make test ENVIRONMENT="${RAD_ENVIRONMENT_NAME}" RECIPE_TYPE=${{ matrix.recipe }}
