@@ -53,7 +53,7 @@ types:
               destinationContainer: {
                 resourceId: myContainer.id
                 containerName: 'frontend'
-                containerPort: 'web'
+                containerPort: myContainer.properties.containers.frontend.ports.web.containerPort
               }
             }
           ]
@@ -80,7 +80,7 @@ types:
               destinationContainer: {
                 resourceId: myContainer.id
                 containerName: 'frontend'
-                containerPort: 'web'
+                containerPort: myContainer.properties.containers.frontend.ports.web.containerPort
               }
             }
             {
@@ -92,7 +92,7 @@ types:
               destinationContainer: {
                 resourceId: myContainer.id
                 containerName: 'accounts'
-                containerPort: 'web'
+                containerPort: myContainer.properties.containers.accounts.ports.web.containerPort
               }
             }
           ]

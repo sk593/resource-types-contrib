@@ -15,6 +15,9 @@ locals {
   route_kind   = try(var.context.resource.properties.kind, "HTTP")
   resource_id  = var.context.resource.id
   resource_name = var.context.resource.name
+  resource_segments = split(local.resource_id, "/")
+  resource_group    = length(local.resource_segments) > 4 ? local.resource_segments[4] : ""
+  resource_type     = try(var.context.resource.type, length(local.resource_segments) > 6 ? "${local.resource_segments[5]}/${local.resource_segments[6]}" : "")
   environment_value = try(tostring(var.context.resource.properties.environment), "")
   environment_segments = local.environment_value != "" ? split("/", local.environment_value) : []
   environment_label = length(local.environment_segments) > 0 ? local.environment_segments[length(local.environment_segments) - 1] : ""
@@ -22,14 +25,18 @@ locals {
     "radapp.io/resource"    = local.resource_name
     "radapp.io/environment" = local.environment_label
     "radapp.io/application" = var.context.application == null ? "" : var.context.application.name
+    "radapp.io/resource-type"  = local.resource_type
+    "radapp.io/resource-group" = local.resource_group
   }
 
   # Generate unique suffix for resource naming
-  resource_id_hash = substr(sha256(local.resource_id), 0, 10)
+  resource_id_hash = substr(sha256(local.resource_id), 0, 13)
+  route_name       = "routes-${local.resource_id_hash}"
 
   # Assume Gateway already exists - use a default gateway name
   # Platform engineers should configure this via recipe parameters or environment
-  gateway_name = "default-gateway"
+  gateway_name      = var.gateway_name
+  gateway_namespace = var.gateway_namespace
 }
 
 # Create HTTPRoute for HTTP routing using Gateway API
@@ -40,7 +47,7 @@ resource "kubernetes_manifest" "http_route" {
     apiVersion = "gateway.networking.k8s.io/v1"
     kind       = "HTTPRoute"
     metadata = {
-      name      = "routes-${local.resource_id_hash}"
+      name      = local.route_name
       namespace = var.context.runtime.kubernetes.namespace
       labels = local.route_base_labels
     }
@@ -49,7 +56,7 @@ resource "kubernetes_manifest" "http_route" {
         parentRefs = [
           {
             name      = local.gateway_name
-            namespace = var.context.runtime.kubernetes.namespace
+            namespace = local.gateway_namespace
           }
         ]
       },
@@ -90,7 +97,7 @@ resource "kubernetes_manifest" "tls_route" {
     apiVersion = "gateway.networking.k8s.io/v1alpha2"
     kind       = "TLSRoute"
     metadata = {
-      name      = "routes-${local.resource_id_hash}"
+      name      = local.route_name
       namespace = var.context.runtime.kubernetes.namespace
       labels = local.route_base_labels
     }
@@ -99,7 +106,7 @@ resource "kubernetes_manifest" "tls_route" {
         parentRefs = [
           {
             name      = local.gateway_name
-            namespace = var.context.runtime.kubernetes.namespace
+            namespace = local.gateway_namespace
           }
         ]
       },
@@ -132,7 +139,7 @@ resource "kubernetes_manifest" "tcp_route" {
     apiVersion = "gateway.networking.k8s.io/v1alpha2"
     kind       = "TCPRoute"
     metadata = {
-      name      = "routes-${local.resource_id_hash}"
+      name      = local.route_name
       namespace = var.context.runtime.kubernetes.namespace
       labels = local.route_base_labels
     }
@@ -140,7 +147,7 @@ resource "kubernetes_manifest" "tcp_route" {
       parentRefs = [
         {
           name      = local.gateway_name
-          namespace = var.context.runtime.kubernetes.namespace
+          namespace = local.gateway_namespace
         }
       ]
       rules = [
@@ -169,7 +176,7 @@ resource "kubernetes_manifest" "udp_route" {
     apiVersion = "gateway.networking.k8s.io/v1alpha2"
     kind       = "UDPRoute"
     metadata = {
-      name      = "routes-${local.resource_id_hash}"
+      name      = local.route_name
       namespace = var.context.runtime.kubernetes.namespace
       labels = local.route_base_labels
     }
@@ -177,7 +184,7 @@ resource "kubernetes_manifest" "udp_route" {
       parentRefs = [
         {
           name      = local.gateway_name
-          namespace = var.context.runtime.kubernetes.namespace
+          namespace = local.gateway_namespace
         }
       ]
       rules = [
@@ -195,5 +202,28 @@ resource "kubernetes_manifest" "udp_route" {
         }
       ]
     }
+  }
+}
+
+output "result" {
+  description = "Resource IDs created by the route recipe."
+  value = local.route_kind == "HTTP" ? {
+    resources = [
+      "/planes/kubernetes/local/namespaces/${var.context.runtime.kubernetes.namespace}/providers/gateway.networking.k8s.io/HTTPRoute/${local.route_name}"
+    ]
+  } : local.route_kind == "TLS" ? {
+    resources = [
+      "/planes/kubernetes/local/namespaces/${var.context.runtime.kubernetes.namespace}/providers/gateway.networking.k8s.io/TLSRoute/${local.route_name}"
+    ]
+  } : local.route_kind == "TCP" ? {
+    resources = [
+      "/planes/kubernetes/local/namespaces/${var.context.runtime.kubernetes.namespace}/providers/gateway.networking.k8s.io/TCPRoute/${local.route_name}"
+    ]
+  } : local.route_kind == "UDP" ? {
+    resources = [
+      "/planes/kubernetes/local/namespaces/${var.context.runtime.kubernetes.namespace}/providers/gateway.networking.k8s.io/UDPRoute/${local.route_name}"
+    ]
+  } : {
+    resources = []
   }
 }

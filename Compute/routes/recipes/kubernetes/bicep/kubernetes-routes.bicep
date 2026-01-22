@@ -1,11 +1,11 @@
 @description('Radius-provided deployment context.')
 param context object
 
-@description('Name of the Gateway resource to attach routes to. Can be configured per environment or recipe.')
-param gatewayName string = 'default-gateway'
+@description('Name of the Gateway resource to attach routes to. Must be provided by the user.')
+param gatewayName string
 
-@description('Namespace where the Gateway resource is located. Defaults to the same namespace as the route.')
-param gatewayNamespace string = context.runtime.kubernetes.namespace
+@description('Namespace where the Gateway resource is located. Must be provided by the user.')
+param gatewayNamespace string
 
 extension kubernetes with {
   namespace: context.runtime.kubernetes.namespace
@@ -19,12 +19,17 @@ var hostnames = context.resource.properties.?hostnames ?? []
 var routeKind = context.resource.properties.?kind ?? 'HTTP'
 var environmentSegments = context.resource.properties.environment != null ? split(string(context.resource.properties.environment), '/') : []
 var environmentLabel = length(environmentSegments) > 0 ? last(environmentSegments) : ''
+var resourceSegments = split(string(context.resource.id), '/')
+var resourceGroup = length(resourceSegments) > 4 ? resourceSegments[4] : ''
+var resourceType = context.resource.?type ?? (length(resourceSegments) > 6 ? '${resourceSegments[5]}/${resourceSegments[6]}' : '')
 
 // Labels
 var labels = {
   'radapp.io/resource': resourceName
   'radapp.io/environment': environmentLabel
   'radapp.io/application': context.application == null ? '' : context.application.name
+  'radapp.io/resource-type': resourceType
+  'radapp.io/resource-group': resourceGroup
 }
 
 
