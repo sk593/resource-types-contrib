@@ -98,7 +98,7 @@ resource tcpRoute 'gateway.networking.k8s.io/TCPRoute@v1alpha2' = if (routeKind 
                 ? '${last(split(rule.destinationContainer.resourceId, '/'))}-${rule.destinationContainer.containerName}'
                 : last(split(rule.destinationContainer.resourceId, '/'))
             )
-            port: rule.destinationContainer.?containerPort ?? 80
+            port: rule.destinationContainer.containerPort
           }
         ]
       }
@@ -129,7 +129,7 @@ resource udpRoute 'gateway.networking.k8s.io/UDPRoute@v1alpha2' = if (routeKind 
                 ? '${last(split(rule.destinationContainer.resourceId, '/'))}-${rule.destinationContainer.containerName}'
                 : last(split(rule.destinationContainer.resourceId, '/'))
             )
-            port: rule.destinationContainer.?containerPort ?? 80
+            port: rule.destinationContainer.containerPort
           }
         ]
       }
@@ -155,7 +155,7 @@ var httpRules = [
             ? '${last(split(rule.destinationContainer.resourceId, '/'))}-${rule.destinationContainer.containerName}'
             : last(split(rule.destinationContainer.resourceId, '/'))
         )
-        port: rule.destinationContainer.?containerPort ?? 80
+        port: rule.destinationContainer.containerPort
       }
     ]
   }
@@ -171,7 +171,7 @@ var tlsRules = [
             ? '${last(split(rule.destinationContainer.resourceId, '/'))}-${rule.destinationContainer.containerName}'
             : last(split(rule.destinationContainer.resourceId, '/'))
         )
-        port: rule.destinationContainer.?containerPort ?? 443
+        port: rule.destinationContainer.containerPort
       }
     ]
   }

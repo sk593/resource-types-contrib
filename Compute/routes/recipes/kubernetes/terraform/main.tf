@@ -79,7 +79,7 @@ resource "kubernetes_manifest" "http_route" {
                   ? "${split("/", rule.destinationContainer.resourceId)[length(split("/", rule.destinationContainer.resourceId)) - 1]}-${rule.destinationContainer.containerName}"
                   : split("/", rule.destinationContainer.resourceId)[length(split("/", rule.destinationContainer.resourceId)) - 1]
                 )
-                port = try(rule.destinationContainer.containerPort, 80)
+                port = rule.destinationContainer.containerPort
               }
             ]
           }
@@ -121,7 +121,7 @@ resource "kubernetes_manifest" "tls_route" {
                   ? "${split("/", rule.destinationContainer.resourceId)[length(split("/", rule.destinationContainer.resourceId)) - 1]}-${rule.destinationContainer.containerName}"
                   : split("/", rule.destinationContainer.resourceId)[length(split("/", rule.destinationContainer.resourceId)) - 1]
                 )
-                port = try(rule.destinationContainer.containerPort, 443)
+                port = rule.destinationContainer.containerPort
               }
             ]
           }
@@ -159,7 +159,7 @@ resource "kubernetes_manifest" "tcp_route" {
                 ? "${split("/", rule.destinationContainer.resourceId)[length(split("/", rule.destinationContainer.resourceId)) - 1]}-${rule.destinationContainer.containerName}"
                 : split("/", rule.destinationContainer.resourceId)[length(split("/", rule.destinationContainer.resourceId)) - 1]
               )
-              port = try(rule.destinationContainer.containerPort, 80)
+              port = rule.destinationContainer.containerPort
             }
           ]
         }
@@ -196,7 +196,7 @@ resource "kubernetes_manifest" "udp_route" {
                 ? "${split("/", rule.destinationContainer.resourceId)[length(split("/", rule.destinationContainer.resourceId)) - 1]}-${rule.destinationContainer.containerName}"
                 : split("/", rule.destinationContainer.resourceId)[length(split("/", rule.destinationContainer.resourceId)) - 1]
               )
-              port = try(rule.destinationContainer.containerPort, 80)
+              port = rule.destinationContainer.containerPort
             }
           ]
         }
