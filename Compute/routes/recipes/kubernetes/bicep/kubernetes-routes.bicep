@@ -22,13 +22,14 @@ var environmentLabel = length(environmentSegments) > 0 ? last(environmentSegment
 var resourceSegments = split(string(context.resource.id), '/')
 var resourceGroup = length(resourceSegments) > 4 ? resourceSegments[4] : ''
 var resourceType = context.resource.?type ?? (length(resourceSegments) > 6 ? '${resourceSegments[5]}/${resourceSegments[6]}' : '')
+var resourceTypeLabel = replace(resourceType, '/', '.')
 
 // Labels
 var labels = {
   'radapp.io/resource': resourceName
   'radapp.io/environment': environmentLabel
   'radapp.io/application': context.application == null ? '' : context.application.name
-  'radapp.io/resource-type': resourceType
+  'radapp.io/resource-type': resourceTypeLabel
   'radapp.io/resource-group': resourceGroup
 }
 

@@ -18,6 +18,7 @@ locals {
   resource_segments = split(local.resource_id, "/")
   resource_group    = length(local.resource_segments) > 4 ? local.resource_segments[4] : ""
   resource_type     = try(var.context.resource.type, length(local.resource_segments) > 6 ? "${local.resource_segments[5]}/${local.resource_segments[6]}" : "")
+  resource_type_label = replace(local.resource_type, "/", ".")
   environment_value = try(tostring(var.context.resource.properties.environment), "")
   environment_segments = local.environment_value != "" ? split("/", local.environment_value) : []
   environment_label = length(local.environment_segments) > 0 ? local.environment_segments[length(local.environment_segments) - 1] : ""
@@ -25,7 +26,7 @@ locals {
     "radapp.io/resource"    = local.resource_name
     "radapp.io/environment" = local.environment_label
     "radapp.io/application" = var.context.application == null ? "" : var.context.application.name
-    "radapp.io/resource-type"  = local.resource_type
+    "radapp.io/resource-type"  = local.resource_type_label
     "radapp.io/resource-group" = local.resource_group
   }
 
